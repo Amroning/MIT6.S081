@@ -180,16 +180,18 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     panic("uvmunmap: not aligned");
 
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-    if((pte = walk(pagetable, a, 0)) == 0)
-      panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
-      panic("uvmunmap: not mapped");
-    if(PTE_FLAGS(*pte) == PTE_V)
-      panic("uvmunmap: not a leaf");
-    if(do_free){
-      uint64 pa = PTE2PA(*pte);
-      kfree((void*)pa);
-    }
+      if ((pte = walk(pagetable, a, 0)) == 0)
+          //   panic("uvmunmap: walk");     惰性分配，遇到不存在的页表项就跳过
+          continue;
+      if ((*pte & PTE_V) == 0)
+          //   panic("uvmunmap: not mapped");   同上
+          continue;
+      if (PTE_FLAGS(*pte) == PTE_V)
+          panic("uvmunmap: not a leaf");
+      if(do_free){
+          uint64 pa = PTE2PA(*pte);
+          kfree((void*)pa);
+  }
     *pte = 0;
   }
 }
