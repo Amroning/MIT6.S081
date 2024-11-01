@@ -47,8 +47,15 @@ sys_sbrk(void)
   if(argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
-  if(growproc(n) < 0)
-    return -1;
+
+  /*if(growproc(n) < 0)     //惰性分配
+    return -1;*/
+
+  if (n < 0)
+      uvmalloc(myproc()->pagetable, myproc()->sz, myproc()->sz + n);        //如果是减少内存，还是要马上执行
+
+  myproc()->sz += n;         //惰性分配，这里仅改变sz字段
+
   return addr;
 }
 
