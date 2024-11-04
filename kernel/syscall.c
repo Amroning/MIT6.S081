@@ -67,8 +67,27 @@ argint(int n, int *ip)
 int
 argaddr(int n, uint64 *ip)
 {
-  *ip = argraw(n);
-  return 0;
+    *ip = argraw(n);
+    struct proc* p = myproc();
+
+    //处理想系统调用传入惰性分配地址的情况,也就是进行系统调用的时候马上分配物理地址
+    if (walkaddr(p->pagetable, *ip) == 0) {
+        if (PGROUNDUP(p->trapframe->sp) - 1 < *ip && *ip < p->sz) {
+            char* pa = kalloc();
+            if (pa == 0)
+                return -1;
+            memset(pa, 0, PGSIZE);
+
+            if (mappages(p->pagetable, PGROUNDDOWN(*ip), PGSIZE, (uint64)pa, PTE_R | PTE_W | PTE_X | PTE_U) != 0) {
+                kfree(pa);
+                return -1;
+            }
+        }
+        else
+            return -1;
+    }
+
+    return 0;
 }
 
 // Fetch the nth word-sized system call argument as a null-terminated string.
